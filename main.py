@@ -1,59 +1,106 @@
 import sqlite3
+import os
 import cv2
 
-# Crear base de datos y tabla si no existen
 def crear_base_datos():
+    if not os.path.exists("qr_lector.db"):  # Verificar si el archivo de la BD existe
+        print("\U0001F4C2 Creando base de datos...")
+    
     conn = sqlite3.connect("qr_lector.db")
     cursor = conn.cursor()
+    
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Productos(
             id INTEGER PRIMARY KEY, 
             nombre TEXT NOT NULL, 
             precio REAL NOT NULL, 
-            cantidad INTEGER NOT NULL
+            cantidad INTEGER NOT NULL,
+            estado TEXT NOT NULL DEFAULT 'Activo'
         );
     """)
+    
     conn.commit()
     conn.close()
 
-# Agregar producto a la base de datos
-def agregar_producto(id, nombre, precio, cantidad):
+def agregar_producto(id, nombre, precio, cantidad, estado="Activo"):
     conn = sqlite3.connect("qr_lector.db")
     cursor = conn.cursor()
     
-    # Verificar si el producto ya existe
+    cursor.execute("SELECT cantidad, estado FROM Productos WHERE id = ?", (id,))
+    resultado = cursor.fetchone()
+    
+    if resultado:
+        print(f"\U0001F504 Producto '{nombre}' ya existe.")
+        print(f"\U0001F197 ID: {id} | \U0001F4CC Nombre: {nombre} | \U0001F4B2 Precio: {precio} | \U0001F4E6 Cantidad: {cantidad} | \U0001F534 Estado: {estado}")
+    else:
+        cursor.execute("INSERT INTO Productos (id, nombre, precio, cantidad, estado) VALUES (?, ?, ?, ?, 'Activo')",
+                       (id, nombre, precio, cantidad))
+        print(f"\u2705 Producto '{nombre}' agregado con éxito.")
+    
+    conn.commit()
+    conn.close()
+
+def actualizar_producto(id):
+    conn = sqlite3.connect("qr_lector.db")
+    cursor = conn.cursor()
+    
     cursor.execute("SELECT cantidad FROM Productos WHERE id = ?", (id,))
     resultado = cursor.fetchone()
     
     if resultado:
-        nueva_cantidad = resultado[0] + cantidad
+        cantidad_actual = resultado[0]
+        accion = input("¿Desea agregar (A) o eliminar (E) cantidad?: ").strip().upper()
+        if accion == 'A':
+            cantidad = int(input("Ingrese la cantidad a agregar: "))
+            nueva_cantidad = cantidad_actual + cantidad
+        elif accion == 'E':
+            cantidad = int(input("Ingrese la cantidad a eliminar: "))
+            nueva_cantidad = max(0, cantidad_actual - cantidad)
+        else:
+            print("\u26A0 Opción inválida. No se realizaron cambios.")
+            return
+        
         cursor.execute("UPDATE Productos SET cantidad = ? WHERE id = ?", (nueva_cantidad, id))
-        print(f"🔄 Producto '{nombre}' actualizado. Nueva cantidad: {nueva_cantidad}")
+        print("\u2705 Producto actualizado correctamente.")
     else:
-        cursor.execute("INSERT INTO Productos (id, nombre, precio, cantidad) VALUES (?, ?, ?, ?)",
-                       (id, nombre, precio, cantidad))
-        print(f"✅ Producto '{nombre}' agregado con éxito.")
+        print("\u26A0 No se encontró el producto.")
     
     conn.commit()
     conn.close()
 
-# Leer código QR e insertar en la base de datos
-def leer_qr_y_guardar(ruta_qr):
+def cambiar_estado_producto(id, nuevo_estado):
+    conn = sqlite3.connect("qr_lector.db")
+    cursor = conn.cursor()
+    
+    cursor.execute("UPDATE Productos SET estado = ? WHERE id = ?", (nuevo_estado, id))
+    
+    if cursor.rowcount > 0:
+        print(f"\u2705 Producto con ID {id} cambiado a estado '{nuevo_estado}' correctamente.")
+    else:
+        print("\u26A0 No se encontró el producto.")
+    
+    conn.commit()
+    conn.close()
+
+def leer_qr_y_guardar(ruta_qr, accion):
     img = cv2.imread(ruta_qr)
     detector = cv2.QRCodeDetector()
     data, _, _ = detector.detectAndDecode(img)
     
     if data:
         try:
-            # Suponiendo que el QR tiene el formato "ID,Nombre,Precio,Cantidad"
             id, nombre, precio, cantidad = data.split(',')
-            agregar_producto(int(id), nombre, float(precio), int(cantidad))
+            id, precio, cantidad = int(id), float(precio), int(cantidad)
+            
+            if accion == 'Crear':
+                agregar_producto(id, nombre, precio, cantidad)
+            elif accion == 'Actualizar':
+                actualizar_producto(id)
         except ValueError:
-            print("⚠ Error: El formato del QR no es válido.")
+            print("\u26A0 Error: El formato del QR no es válido.")
     else:
-        print("⚠ No se pudo leer el código QR.")
+        print("\u26A0 No se pudo leer el código QR.")
 
-# Consultar todos los productos en la base de datos
 def consultar_productos():
     conn = sqlite3.connect("qr_lector.db")
     cursor = conn.cursor()
@@ -61,19 +108,76 @@ def consultar_productos():
     productos = cursor.fetchall()
     
     if productos:
-        print("\n📋 Listado de Productos:")
-        for id, nombre, precio, cantidad in productos:
-            print(f"🆔 ID: {id} | 📌 Nombre: {nombre} | 💲 Precio: {precio} | 📦 Cantidad: {cantidad}")
+        print("\n\U0001F4CB Listado de Productos:")
+        for id, nombre, precio, cantidad, estado in productos:
+            print(f"\U0001F194 ID: {id} | \U0001F4CC Nombre: {nombre} | \U0001F4B2 Precio: {precio} | \U0001F4E6 Cantidad: {cantidad} | \U0001F518 Estado: {estado}")
     else:
-        print("\n📭 No hay productos en la base de datos.")
+        print("\n\U0001F4ED No hay productos en la base de datos.")
+    
+    conn.close()
+    
+def consultar_producto_por_id(id):
+    conn = sqlite3.connect("qr_lector.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Productos WHERE id = ?", (id,))
+    producto = cursor.fetchone()
+    
+    if producto:
+        id, nombre, precio, cantidad, estado = producto
+        print(f"\n \U0001F50D Producto encontrado:")
+        print(f"\U0001F194 ID: {id} | \U0001F4CC Nombre: {nombre} | \U0001F4B2 Precio: {precio} | \U0001F4E6 Cantidad: {cantidad} | \U0001F518 Estado: {estado}")
+    else:
+        print("\u26A0 No se encontró un producto con ese ID.")
     
     conn.close()
 
-# Crear la base de datos si no existe
+def menu():
+    while True:
+        print("\n\U0001F4CC Menú de Opciones:")
+        print("\U00000031\U000020E3 Crear Producto")
+        print("\U00000032\U000020E3 Actualizar Producto")
+        print("\U00000033\U000020E3 Consultar Productos")
+        print("\U00000034\U000020E3 Consultar Producto por ID")
+        print("\U00000035\U000020E3 Deshabilitar Producto")
+        print("\U00000036\U000020E3 Reactivar Producto")
+        print("\U00000030\U000020E3 Salir")
+        
+        opcion = input("🔹 Seleccione una opción: ")
+        
+        if opcion == '1':
+            leer_qr_y_guardar('prbQR.png', 'Crear')
+        elif opcion == '2':
+            try:
+                id_producto = int(input("Ingrese el ID del producto a actualizar: "))
+                actualizar_producto(id_producto)
+            except ValueError:
+                print("\u26A0 Entrada inválida. Ingrese un número válido.")
+        elif opcion == '3':
+            consultar_productos()
+        elif opcion == '4':
+            try:
+                id_producto = int(input("Ingrese el ID del producto a consultar: "))
+                consultar_producto_por_id(id_producto)
+            except ValueError:
+                print("\u26A0 Entrada inválida. Ingrese un número válido.")
+        elif opcion == '5':
+            try:
+                id_producto = int(input("Ingrese el ID del producto a deshabilitar: "))
+                cambiar_estado_producto(id_producto, 'Deshabilitado')
+            except ValueError:
+                print("\u26A0 Entrada inválida. Ingrese un número válido.")
+        elif opcion == '6':
+            try:
+                id_producto = int(input("Ingrese el ID del producto a reactivar: "))
+                cambiar_estado_producto(id_producto, 'Activo')
+            except ValueError:
+                print("\u26A0 Entrada inválida. Ingrese un número válido.")
+        elif opcion == '0':
+            print("\U0001F44B Saliendo...")
+            break
+        else:
+            print("\u26A0 Opción inválida, intente de nuevo.")
+
+# Ejecutar
 crear_base_datos()
-
-# 📷 Leer QR y guardar información
-leer_qr_y_guardar('prbQR.png')
-
-# 🔍 Consultar productos para verificar la inserción
-consultar_productos()
+menu()
