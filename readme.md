@@ -1,6 +1,3 @@
-Aquí tienes un README en formato Markdown para tu proyecto:
-
-```markdown
 # QR Lector y Gestor de Productos
 
 Este proyecto es una aplicación de consola en Python que permite gestionar una base de datos de productos utilizando códigos QR. La aplicación permite crear, actualizar, consultar y deshabilitar productos en una base de datos SQLite.
@@ -20,8 +17,6 @@ Clona el repositorio en tu máquina local:
 
 ```bash
 git clone https://github.com/Juanpase27/lectorQRPython.git
-cd 'lectorQRPython'
-
 ```
 
 ### 2. Crear un Entorno Virtual
@@ -48,9 +43,14 @@ pip install opencv-python
 ```
 
 ## Uso
+**Para ejecutar el proyecto se recomienda usar el entorno virtual previamente dicho y utilizar el comando**
+```bash
+py <nombre_del_archivo>.py
+```
 
-1. **Crear la base de datos**: Al ejecutar el programa, se creará automáticamente una base de datos llamada `qr_lector.db` si no existe.
-2. **Menú de Opciones**: El programa presenta un menú interactivo donde puedes elegir entre las siguientes opciones:
+1. **Crear código QR**: Para realizar pruebas de forma correcta en el sistema se incorpora un módulo para generar códigos QR a partir de texto plano. Para hacer uso de este módulo se debe de ejecutar el archivo `crear.py`, en dicho archivo se pedirá que se registre la información que contendrá el QR, para ello se debe de generar un texto similar al siguiente: "4,Mandarinas,0.2,400", siendo su estructura: ID,Nombre,Precio,Cantidad 
+2. **Crear la base de datos**: Se debe de usar el archivo `main.py` . Al ejecutar el programa, se creará automáticamente una base de datos llamada `qr_lector.db` si no existe.
+3. **Menú de Opciones**: El programa presenta un menú interactivo donde puedes elegir entre las siguientes opciones:
    - Crear Producto
    - Actualizar Producto
    - Consultar Productos
@@ -59,7 +59,7 @@ pip install opencv-python
    - Reactivar Producto
    - Salir
 
-3. **Leer Códigos QR**: Para crear o actualizar un producto, el programa leerá un código QR de un archivo de imagen. Asegúrate de que el archivo `prbQR.png` esté en el mismo directorio que el script.
+4. **Leer Códigos QR**: Para crear o actualizar un producto, el programa leerá un código QR de un archivo de imagen. Asegúrate de que el archivo `prbQR.png` se halla generado en el paso 1.
 
 ## Funciones Principales
 
