@@ -71,7 +71,3 @@ py <nombre_del_archivo>.py
 - `consultar_productos()`: Muestra todos los productos en la base de datos.
 - `consultar_producto_por_id(id)`: Muestra la información de un producto específico por su ID.
 
-## Contribuciones
-
-Las contribuciones son bienvenidas. Si deseas contribuir, por favor abre un issue o envía un pull request.
-
